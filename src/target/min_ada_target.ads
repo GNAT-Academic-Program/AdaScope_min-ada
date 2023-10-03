@@ -72,8 +72,51 @@ package Min_ada_target is
    end record;
 
    --Need to check if pointers equivalent in ada is necessary
+   --Check if const concept exists
    function min_queue_frame
       (self : min_context;
-       min_id : UInt8) return Boolean;
+       min_id : UInt8;
+       payload : UInt8;
+       payload_len : UInt8) return Boolean;
+
+   function min_has_space_for_frame
+      (self : min_context;
+       payload_len : UInt8) return Boolean;
+
+   procedure min_send_frame
+      (self : min_context;
+       min_id : UInt8;
+       payload : UInt8;
+       payload_len : UInt8);
+
+   procedure min_poll
+      (self : min_context;
+       buf : UInt8;
+       buf_len : UInt32);
+
+   procedure min_transport_reset
+      (self : min_context;
+       inform_other_side: Boolean);
+
+   procedure min_transport_reset
+      (min_id : UInt8;
+       min_payload : UInt8;
+       len_payload : UInt8;
+       port: UInt8);
+
+   function min_time_ms return UInt32;
+
+   function min_tx_space
+      (port : UInt8) return UInt16;
+   
+   procedure min_tx_byte
+      (port : UInt8;
+       byte: UInt8);
+
+   procedure min_tx_start
+      (port : UInt8);
+
+   procedure min_tx_finished
+      (port : UInt8);
 
 end Min_ada_target;
