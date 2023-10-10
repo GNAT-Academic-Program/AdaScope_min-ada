@@ -2,10 +2,11 @@ with Beta_Types; use Beta_Types;
 
 package Min_ada_target is
 
-   MAX_PAYLOAD : Integer := 250;
-   TRANSPORT_FIFO_SIZE_FRAMES_BITS : Integer := 4;
-   TRANSPORT_FIFO_SIZE_FRAME_DATA_BITS : Integer := 10;
-   TRANSPORT_FIFO_MAX_FRAMES : Integer := 4;
+   MAX_PAYLOAD : UInt8 := 255;
+   TRANSPORT_FIFO_SIZE_FRAMES_BITS : UInt8 := 4;
+   TRANSPORT_FIFO_SIZE_FRAME_DATA_BITS : UInt8 := 10;
+   TRANSPORT_FIFO_MAX_FRAMES : UInt8 := 16;
+   TRANSPORT_FIFO_MAX_FRAME_DATA : UInt16 := 1024;
    --Need to use unsigned ints (modular types in ada) and left shit (bitwise operation)
 
    type crc32_context is record
@@ -55,7 +56,7 @@ package Min_ada_target is
 
    type min_context is record
 
-      transport_fifo_min_context              :   transport_fifo;
+      transport_fifo_min_context  :   transport_fifo;
       rx_frame_payload_buf        :   UInt8_array_max;
       rx_checksum                 :   crc32_context;
       tx_checksum                 :   crc32_context;
@@ -71,36 +72,44 @@ package Min_ada_target is
 
    end record;
 
+   type min_context_Acc is access min_context;
+   
+   type buffer is
+      array (1 .. 32) of Character;
+   
+   type payload_Arr is
+      array (Integer range <>) of Character;
+
    --Need to check if pointers equivalent in ada is necessary
    --Check if const concept exists
    function min_queue_frame
-      (self : min_context;
+      (self : min_context_Acc;
        min_id : UInt8;
-       payload : UInt8;
+       payload : payload_Arr;
        payload_len : UInt8) return Boolean;
 
    function min_has_space_for_frame
-      (self : min_context;
+      (self : min_context_Acc;
        payload_len : UInt8) return Boolean;
 
    procedure min_send_frame
-      (self : min_context;
+      (self : min_context_Acc;
        min_id : UInt8;
-       payload : UInt8;
+       payload : payload_Arr;
        payload_len : UInt8);
 
    procedure min_poll
-      (self : min_context;
-       buf : UInt8;
+      (self : min_context_Acc;
+       buf : buffer;
        buf_len : UInt32);
 
    procedure min_transport_reset
-      (self : min_context;
+      (self : min_context_Acc;
        inform_other_side: Boolean);
 
-   procedure min_transport_reset
+   procedure min_application_handler
       (min_id : UInt8;
-       min_payload : UInt8;
+       min_payload : payload_Arr;
        len_payload : UInt8;
        port: UInt8);
 
