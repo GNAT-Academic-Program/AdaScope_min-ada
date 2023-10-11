@@ -2,7 +2,8 @@ with Ada.Text_IO; use Ada.Text_IO;
 
 package body Min_Ada_Utils is
    procedure Transport_Fifo_Pop (
-      Transport         : Min_Transport
+      Transport                 : Min_Transport;
+      New_Min_Transport_Fifo    : out Min_Ada_Utils.Min_Frame_Array
    ) is
    begin
       Put_Line ("Hello");
@@ -174,7 +175,7 @@ package body Min_Ada_Utils is
       Test : String
    ) is
    begin
-       Put_Line (Test);
+      Put_Line (Test);
    end Testing;
 
 end Min_Ada_Utils;

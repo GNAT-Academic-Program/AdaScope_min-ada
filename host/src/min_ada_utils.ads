@@ -25,6 +25,9 @@ package Min_Ada_Utils is
        Last_Sent_Time    : Integer;
    end record;
 
+   type Min_Frame_Array is
+      array (Integer range 1 .. 10) of Min_Frame;
+
    type Min_Transport is record
       Transport_Fifo_Size           : Integer;
       Ack_Retransmit_Timeout_Ms     : Integer;
@@ -45,7 +48,7 @@ package Min_Ada_Utils is
       Sequence_Mismatch_Drops       : Integer;
 
       --  State of transport FIFO
-      Transport_Fifo                : Min_Frame;
+      Transport_Fifo                : Min_Frame_Array;
       --  Last_Sent_Ack_Time_Ms = None  # type: int
       --  Last_Received_Anything_Ms = None  # type: int
       --  Last_Received_Frame_Ms = None  # type: int
@@ -77,7 +80,8 @@ package Min_Ada_Utils is
    end record;
 
    procedure Transport_Fifo_Pop (
-      Transport         : Min_Transport
+      Transport                 : Min_Transport;
+      New_Min_Transport_Fifo    : out Min_Frame_Array
    );
 
    function Transport_Fifo_Get (
