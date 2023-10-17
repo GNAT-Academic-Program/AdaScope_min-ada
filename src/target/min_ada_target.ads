@@ -9,6 +9,17 @@ package Min_ada_target is
    TRANSPORT_FIFO_MAX_FRAME_DATA : UInt16 := 1024;
    --Need to use unsigned ints (modular types in ada) and left shit (bitwise operation)
 
+   type Receiving_State is (  SEARCHING_FOR_SOF,
+                              RECEIVING_ID_CONTROL,
+                              RECEIVING_SEQ,
+                              RECEIVING_LENGTH,
+                              RECEIVING_PAYLOAD,
+                              RECEIVING_CHECKSUM_3,
+                              RECEIVING_CHECKSUM_2,
+                              RECEIVING_CHECKSUM_1,
+                              RECEIVING_CHECKSUM_0,
+                              RECEIVING_EOF);
+
    type crc32_context is record
 
       crc     :   UInt32;
@@ -61,7 +72,7 @@ package Min_ada_target is
       rx_checksum                 :   crc32_context;
       tx_checksum                 :   crc32_context;
       rx_header_bytes_seen        :   UInt8;
-      rx_frame_state              :   UInt8;
+      rx_frame_state              :   Receiving_State;
       rx_frame_payload_bytes      :   UInt8;
       rx_frame_id_control         :   UInt8;
       rx_frame_seq                :   UInt8;
@@ -127,5 +138,9 @@ package Min_ada_target is
 
    procedure min_tx_finished
       (port : UInt8);
+
+   procedure min_init_context
+      (self : min_context_Acc;
+       port : UInt8);
 
 end Min_ada_target;

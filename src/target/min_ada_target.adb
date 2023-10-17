@@ -31,7 +31,9 @@ package body Min_ada_target is
        payload : payload_Arr;
        payload_len : UInt8) is
    begin
-      if ON_WIRE_SIZE (payload_len) <= min_tx_space
+      if ON_WIRE_SIZE (payload_len) <= min_tx_space(self.port) then
+         on_wire_bytes(self, min_id and 63, 0, payload, 0, 65535, payload_len);
+      end if;
    end min_send_frame;
 
    procedure min_poll
@@ -87,6 +89,19 @@ package body Min_ada_target is
    begin
       null;
    end min_tx_finished;
+
+   procedure min_init_context
+      (self : min_context_Acc;
+       port : UInt8) is
+   begin
+      self.rx_header_bytes_seen := 0;
+      self.rx_frame_state := SEARCHING_FOR_SOF;
+      self.port := port;
+   end min_init_context;
+
+   procedure on_wire_bytes
+      (self : min_context_Acc;
+      )
    
 
 end Min_ada_target;

@@ -8,5 +8,27 @@ maintainers-logins = ["JSIT-20"]
 
 executables = ["min_ada"]
 
+[configuration]
+auto_gpr_with = true
+disabled = false
+generate_ada = true
+generate_c = true
+generate_gpr = true
+output_dir = "config"
+[configuration.values]
+
+[configuration.values.arm_cortex]
+core = "m4f"
+[configuration.values.stm32_config]
+board = "stm32f429disco"
+mcu = "stm32f429x"
+runtime = "embedded"
+
 [[depends-on]]
+arm_cortex = "1.0.0"
 beta_types = "1.0.0"
+gnat_arm_elf = "^12"
+hal_embedded = "1.0.0"
+stm32_boards = "1.0.0"
+stm32_components = "1.0.0"
+stm32_drivers = "1.0.0"
