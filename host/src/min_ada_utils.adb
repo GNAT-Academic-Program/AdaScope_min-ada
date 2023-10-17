@@ -2,11 +2,17 @@ with Ada.Text_IO; use Ada.Text_IO;
 
 package body Min_Ada_Utils is
    procedure Transport_Fifo_Pop (
-      Transport                 : Min_Transport;
+      Transport                 : in out Min_Transport;
       New_Min_Transport_Fifo    : out Min_Ada_Utils.Min_Frame_Array
    ) is
    begin
-      Put_Line ("Hello");
+      if Transport.Transport_Fifo'Size <  2 then
+         null;
+      else
+         New_Min_Transport_Fifo :=
+            Transport.Transport_Fifo (2 .. Transport.Transport_Fifo'Last);
+            Transport.Transport_Fifo := New_Min_Transport_Fifo;
+      end if;
    end Transport_Fifo_Pop;
 
    function Transport_Fifo_Get (
@@ -47,12 +53,20 @@ package body Min_Ada_Utils is
       Put_Line ("Hello");
    end Send_Reset;
 
-   procedure Transport_Fifo_Rest (
-      Transport         : Min_Transport
+   procedure Transport_Fifo_Reset (
+      Transport         : in out Min_Transport
    ) is
    begin
       Put_Line ("Hello");
-   end Transport_Fifo_Rest;
+      --  TODO Transport.Transport_Fifo              := [];
+      Transport.Last_Received_Anything_Ms   := Now_Ms (Transport);
+      Transport.Last_Sent_Ack_Time_Ms       := Now_Ms (Transport);
+      Transport.Last_Sent_Frame_Ms          := 0;
+      Transport.Last_Received_Frame_Ms      := 0;
+      Transport.Sn_Min                      := 0;
+      Transport.Sn_Max                      := 0;
+      Transport.Rn                          := 0;
+   end Transport_Fifo_Reset;
 
    procedure Rx_Reset (
       Transport         : Min_Transport
@@ -65,7 +79,11 @@ package body Min_Ada_Utils is
       Transport         : Min_Transport
    ) is
    begin
-      Put_Line ("Hello");
+      Send_Reset (Transport);
+      Send_Reset (Transport);
+
+      Transport_Reset (Transport);
+      Rx_Reset (Transport);
    end Transport_Reset;
 
    procedure Send_Frame (

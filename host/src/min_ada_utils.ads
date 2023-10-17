@@ -49,10 +49,10 @@ package Min_Ada_Utils is
 
       --  State of transport FIFO
       Transport_Fifo                : Min_Frame_Array;
-      --  Last_Sent_Ack_Time_Ms = None  # type: int
-      --  Last_Received_Anything_Ms = None  # type: int
-      --  Last_Received_Frame_Ms = None  # type: int
-      --  Last_Sent_Frame_Ms = None  # type: int
+      Last_Sent_Ack_Time_Ms         : Integer;
+      Last_Received_Anything_Ms     : Integer;
+      Last_Received_Frame_Ms        : Integer;
+      Last_Sent_Frame_Ms            : Integer;
 
       --  State for receiving a MIN frame
       --  Rx_Frame_Buf = bytearray()
@@ -80,7 +80,7 @@ package Min_Ada_Utils is
    end record;
 
    procedure Transport_Fifo_Pop (
-      Transport                 : Min_Transport;
+      Transport                 : in out Min_Transport;
       New_Min_Transport_Fifo    : out Min_Frame_Array
    );
 
@@ -107,8 +107,8 @@ package Min_Ada_Utils is
       Transport         : Min_Transport
    );
 
-   procedure Transport_Fifo_Rest (
-      Transport         : Min_Transport
+   procedure Transport_Fifo_Reset (
+      Transport         : in out Min_Transport
    );
 
    procedure Rx_Reset (
