@@ -12,9 +12,9 @@ package body Min_Ada_Utils is
    function Transport_Fifo_Get (
       Transport         : Min_Transport;
       Frame_Number      : Integer
-   ) return Min_Transport is
+   ) return Min_Frame is
    begin
-      return Transport;
+      return Transport.Transport_Fifo (Frame_Number);
    end Transport_Fifo_Get;
 
    procedure Transport_Fifo_Send (

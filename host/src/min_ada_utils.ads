@@ -87,7 +87,7 @@ package Min_Ada_Utils is
    function Transport_Fifo_Get (
       Transport         : Min_Transport;
       Frame_Number      : Integer
-   ) return Min_Transport; -- TODO Min_Transport.Transport_Fifo
+   ) return Min_Frame;
 
    procedure Transport_Fifo_Send (
       Transport         : Min_Transport;
