@@ -1,3 +1,5 @@
+with System.CRC32;
+
 package body Min_ada_target is
 
    TRANSPORT_FIFO_SIZE_FRAMES_MASK : UInt8 := 15;
@@ -101,7 +103,11 @@ package body Min_ada_target is
 
    procedure on_wire_bytes
       (self : min_context_Acc;
-      )
+       id_control : UInt8;) is
+   checksum : System.CRC32.CRC32;
+   begin
+      System.CRC32.Initialize(checksum);
+      
    
 
 end Min_ada_target;

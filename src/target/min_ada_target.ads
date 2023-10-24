@@ -88,8 +88,8 @@ package Min_ada_target is
    type buffer is
       array (1 .. 32) of Character;
    
-   type payload_Arr is
-      array (Integer range <>) of Character;
+   type Payload is
+      array (Integer range 0 .. 255) of UInt8;
 
    --Need to check if pointers equivalent in ada is necessary
    --Check if const concept exists
