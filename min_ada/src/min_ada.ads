@@ -1,11 +1,9 @@
-with Interfaces;
-
 package Min_Ada is
 
-   type Bit is mod 2**1
-      with Size => 1;
-   type UInt8 is new Interfaces.Unsigned_8;
-   type UInt32 is new Interfaces.Unsigned_32;
+   type Bit     is mod 2**1     with Size => 1;
+   type Byte    is mod 2**8     with Size => 8;
+   type UInt8   is mod 2**8     with Size => 8;
+   type UInt32  is mod 2**32    with Size => 32;
 
    type App_ID is mod 2**6
       with Size => 6;
@@ -17,8 +15,8 @@ package Min_Ada is
       ID            : App_ID;
       Reserved      : Bit;
       Transport     : Bit;
-   end record
-      with Size => 100;
+   end record with Size => 32;
+   pragma Pack (Frame_Header);
 
    type Min_Payload is array (0 .. 255) of UInt8;
 
@@ -65,7 +63,6 @@ package Min_Ada is
 
       Port                      : UInt8;
          --  Number of the port associated with the context
-
    end record;
 
    procedure Send_Frame (
