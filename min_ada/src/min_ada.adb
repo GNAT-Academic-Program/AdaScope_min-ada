@@ -1,3 +1,5 @@
+with Interfaces;
+
 package body Min_Ada is
 
    procedure Send_Frame (
@@ -6,18 +8,31 @@ package body Min_Ada is
       Payload           : Min_Payload;
       Payload_Length    : Byte
    ) is
-      Checksum : System.CRC32.CRC32;
+      Checksum : Interfaces.Unsigned_32;
       Header : Frame_Header :=
          (HEADER_BYTE, HEADER_BYTE, HEADER_BYTE, ID, 0, 0);
+      Checksum_Bytes : CRC_Bytes;
    begin
-      System.CRC32.Initialize (Checksum);
+      Context.Tx_Header_Byte_Countdown := 2;
+      System.CRC32.Initialize (Context.Tx_Checksum);
 
       Tx_Byte (Header.Header_0);
       Tx_Byte (Header.Header_1);
       Tx_Byte (Header.Header_2);
-      --  Send ID Control
+      --  Send App ID, reserved bit, transport bit (together as one byte)
 
       Stuffed_Tx_Byte (Context, Payload_Length, True);
+
+      for P in Payload'Range loop
+         Stuffed_Tx_Byte(Context, Payload(P), True);
+      end loop;
+
+      Checksum := System.CRC32.Get_Value(Context.Tx_Checksum);
+
+      --Send CRC
+      
+      Tx_Byte(EOF_BYTE);
+
 
    end Send_Frame;
 
@@ -76,8 +91,20 @@ package body Min_Ada is
       CRC       : Boolean
    ) is
    begin
+      Tx_Byte(Data);
       if CRC then
          System.CRC32.Update (Context.Tx_Checksum, Character'Val (Data));
       end if;
+
+      if Data = HEADER_BYTE then
+         Context.Tx_Header_Byte_Countdown := Context.Tx_Header_Byte_Countdown - 1;
+         if Context.Tx_Header_Byte_Countdown = 0 then
+            Tx_Byte(STUFF_BYTE);
+            Context.Tx_Header_Byte_Countdown := 2;
+         end if;
+      else
+         Context.Tx_Header_Byte_Countdown := 2;
+      end if;
+
    end Stuffed_Tx_Byte;
 end Min_Ada;
