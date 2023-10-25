@@ -24,16 +24,14 @@ package body Min_Ada is
       Stuffed_Tx_Byte (Context, Payload_Length, True);
 
       for P in Payload'Range loop
-         Stuffed_Tx_Byte(Context, Payload(P), True);
+         Stuffed_Tx_Byte (Context, Payload (P), True);
       end loop;
 
-      Checksum := System.CRC32.Get_Value(Context.Tx_Checksum);
+      Checksum := System.CRC32.Get_Value (Context.Tx_Checksum);
 
-      --Send CRC
-      
-      Tx_Byte(EOF_BYTE);
+      --  Send CRC
 
-
+      Tx_Byte (EOF_BYTE);
    end Send_Frame;
 
    procedure Rx_Bytes (
@@ -143,15 +141,17 @@ package body Min_Ada is
       CRC       : Boolean
    ) is
    begin
-      Tx_Byte(Data);
+      Tx_Byte (Data);
       if CRC then
          System.CRC32.Update (Context.Tx_Checksum, Character'Val (Data));
       end if;
 
       if Data = HEADER_BYTE then
-         Context.Tx_Header_Byte_Countdown := Context.Tx_Header_Byte_Countdown - 1;
+         Context.Tx_Header_Byte_Countdown :=
+            Context.Tx_Header_Byte_Countdown - 1;
+
          if Context.Tx_Header_Byte_Countdown = 0 then
-            Tx_Byte(STUFF_BYTE);
+            Tx_Byte (STUFF_BYTE);
             Context.Tx_Header_Byte_Countdown := 2;
          end if;
       else
