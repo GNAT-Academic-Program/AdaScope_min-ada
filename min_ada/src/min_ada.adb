@@ -2,13 +2,24 @@ with Ada.Text_IO;
 package body Min_Ada is
 
    procedure Send_Frame (
-      Context           : Min_Context;
+      Context           : in out Min_Context;
       ID                : App_ID;
       Payload           : Min_Payload;
-      Payload_Length    : UInt8
+      Payload_Length    : Byte
    ) is
+   checksum : System.CRC32.CRC32;
+   Header : Frame_Header := (HEADER_BYTE, HEADER_BYTE, HEADER_BYTE, ID, 0, 0);
    begin
-      Ada.Text_IO.Put_Line ("Hello");
+      System.CRC32.Initialize(checksum);
+
+      Tx_byte(Header.Header_0);
+      Tx_byte(Header.Header_1);
+      Tx_byte(Header.Header_2);
+      --Send ID Control
+
+      Stuffed_tx_byte(Context, Payload_Length, True);
+
+
    end Send_Frame;
 
    procedure Rx_Bytes (
@@ -28,4 +39,22 @@ package body Min_Ada is
          end if;
       end if;
    end Rx_Bytes;
+
+   procedure Tx_Byte(
+      Data : Byte
+   ) is
+   begin
+      null;
+   end;
+
+   procedure Stuffed_tx_byte(
+      Context : in out Min_Context;
+      Data : Byte;
+      CRC : Boolean
+   ) is
+   begin
+      if CRC then
+         System.CRC32.Update(Context.Tx_Checksum,  Character'Val(Data));
+      end if;
+   end;
 end Min_Ada;

@@ -1,3 +1,5 @@
+with System.CRC32;
+
 package Min_Ada is
 
    type Bit     is mod 2**1     with Size => 1;
@@ -25,9 +27,9 @@ package Min_Ada is
       with Size => 6;
 
    type Frame_Header is record
-      Header_0      : UInt8;
-      Header_1      : UInt8;
-      Header_2      : UInt8;
+      Header_0      : Byte;
+      Header_1      : Byte;
+      Header_2      : Byte;
       ID            : App_ID;
       Reserved      : Bit;
       Transport     : Bit;
@@ -36,9 +38,13 @@ package Min_Ada is
 
    type Min_Payload is array (0 .. 255) of UInt8;
 
-   type Crc32_Context is record
-      Crc   : UInt32;
-   end record;
+   type CRC_Bytes is record
+      crc_0 : Byte;
+      crc_1 : Byte;
+      crc_2 : Byte;
+      crc_3 : Byte;
+   end record with Size => 32;
+   pragma Pack(CRC_Bytes);
 
    type Min_Context is record
       Rx_Frame_Payload_Buffer   : UInt8;
@@ -47,10 +53,10 @@ package Min_Ada is
       Rx_Frame_Checksum         : UInt8;
          --  Checksum received over the wire
 
-      Rx_Checksum               : Crc32_Context;
+      Rx_Checksum               : System.CRC32.CRC32;
          --  Calculated checksum for receiving frame
 
-      Tx_Checksum               : Crc32_Context;
+      Tx_Checksum               : System.CRC32.CRC32;
          --  Calculated checksum for sending frame
 
       Rx_Header_Bytes_Seen      : UInt8;
@@ -82,15 +88,25 @@ package Min_Ada is
    end record;
 
    procedure Send_Frame (
-      Context           : Min_Context;
+      Context           : in out Min_Context;
       ID                : App_ID;
       Payload           : Min_Payload;
-      Payload_Length    : UInt8
+      Payload_Length    : Byte
    );
 
    procedure Rx_Bytes (
       Context   : in out Min_Context;
       Data      : Byte
+   );
+
+   procedure Tx_byte(
+      Data  : Byte
+   );
+
+   procedure Stuffed_tx_byte(
+      Context : in out Min_Context;
+      Data : Byte;
+      CRC : Boolean
    );
 
 end Min_Ada;
