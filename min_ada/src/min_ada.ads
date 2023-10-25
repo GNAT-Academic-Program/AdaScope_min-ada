@@ -5,7 +5,6 @@ package Min_Ada is
    type Bit     is mod 2**1     with Size => 1;
    type Byte    is mod 2**8     with Size => 8;
    type UInt4   is mod 2**4     with Size => 4;
-   type UInt8   is mod 2**8     with Size => 8;
    type UInt32  is mod 2**32    with Size => 32;
 
    HEADER_BYTE           : constant Byte := 16#AA#;
@@ -36,21 +35,21 @@ package Min_Ada is
    end record with Size => 32;
    pragma Pack (Frame_Header);
 
-   type Min_Payload is array (0 .. 255) of UInt8;
+   type Min_Payload is array (0 .. 255) of Byte;
 
    type CRC_Bytes is record
-      crc_0 : Byte;
-      crc_1 : Byte;
-      crc_2 : Byte;
-      crc_3 : Byte;
+      CRC_0 : Byte;
+      CRC_1 : Byte;
+      CRC_2 : Byte;
+      CRC_3 : Byte;
    end record with Size => 32;
-   pragma Pack(CRC_Bytes);
+   pragma Pack (CRC_Bytes);
 
    type Min_Context is record
-      Rx_Frame_Payload_Buffer   : UInt8;
+      Rx_Frame_Payload_Buffer   : Byte;
          --  Payload received so far
 
-      Rx_Frame_Checksum         : UInt8;
+      Rx_Frame_Checksum         : Byte;
          --  Checksum received over the wire
 
       Rx_Checksum               : System.CRC32.CRC32;
@@ -59,31 +58,31 @@ package Min_Ada is
       Tx_Checksum               : System.CRC32.CRC32;
          --  Calculated checksum for sending frame
 
-      Rx_Header_Bytes_Seen      : UInt8;
+      Rx_Header_Bytes_Seen      : Byte;
          --  Countdown of header bytes to reset state
 
       Rx_Frame_State            : UInt4;
          --  State of receiver
 
-      Rx_Frame_Payload_Bytes    : UInt8;
+      Rx_Frame_Payload_Bytes    : Byte;
          --  Length of payload received so far
 
-      Rx_Frame_ID_Control       : UInt8;
+      Rx_Frame_ID_Control       : Byte;
          --  ID and control bit of frame being received
 
-      Rx_Frame_Seq              : UInt8;
+      Rx_Frame_Seq              : Byte;
          --  Sequence number of frame being received
 
-      Rx_Frame_Length           : UInt8;
+      Rx_Frame_Length           : Byte;
          --  Length of frame
 
-      Rx_Control                : UInt8;
+      Rx_Control                : Byte;
          --  Control byte
 
-      Tx_Header_Byte_Countdown  : UInt8;
+      Tx_Header_Byte_Countdown  : Byte;
          --  Count out the header bytes
 
-      Port                      : UInt8;
+      Port                      : Byte;
          --  Number of the port associated with the context
    end record;
 
@@ -99,14 +98,14 @@ package Min_Ada is
       Data      : Byte
    );
 
-   procedure Tx_byte(
+   procedure Tx_Byte (
       Data  : Byte
    );
 
-   procedure Stuffed_tx_byte(
-      Context : in out Min_Context;
-      Data : Byte;
-      CRC : Boolean
+   procedure Stuffed_Tx_Byte (
+      Context   : in out Min_Context;
+      Data      : Byte;
+      CRC       : Boolean
    );
 
 end Min_Ada;
