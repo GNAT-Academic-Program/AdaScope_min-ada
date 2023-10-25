@@ -57,8 +57,60 @@ package body Min_Ada is
             Context.Rx_Frame_Payload_Bytes  := Data;
             System.CRC32.Initialize (Context.Rx_Checksum);
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
+
+            if Data = Data then -- TODO and 16#80# then
+               Context.Rx_Frame_State := SEARCHING_FOR_SOF;
+            else
+               Context.Rx_Frame_Seq     := 0;
+               Context.Rx_Frame_State   := RECEIVING_LENGTH;
+            end if;
+         when RECEIVING_SEQ =>
+            Context.Rx_Frame_Seq := Data;
+            System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
+            Context.Rx_Frame_State := RECEIVING_LENGTH;
+
+         when RECEIVING_LENGTH =>
+            Context.Rx_Frame_Length := Data;
+            Context.Rx_Control      := Data;
+            System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
+
+            if Context.Rx_Frame_Length > 0 then
+               if Context.Rx_Frame_Length <= 1 then -- TODO MAX_PAYLOAD
+                  Context.Rx_Frame_State := RECEIVING_PAYLOAD;
+               else
+                  --  Frame dropped because it's longer
+                  --  than any frame we can buffer
+                  Context.Rx_Frame_State := SEARCHING_FOR_SOF;
+               end if;
+            else
+               Context.Rx_Frame_State := RECEIVING_CHECKSUM_3;
+            end if;
+
+         when RECEIVING_PAYLOAD =>
+            --  Context.Rx_Frame_Payload_Buffer
+               --  (Integer'Val (Context.Rx_Frame_Payload_Bytes)) := Data;
+            Context.Rx_Frame_Payload_Bytes :=
+               Context.Rx_Frame_Payload_Bytes + 1;
+            System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
+            if Context.Rx_Frame_Length = 0 then
+               Context.Rx_Frame_State := RECEIVING_CHECKSUM_3;
+            end if;
+
+         when RECEIVING_EOF =>
+            if Data = Data then -- TODO 16#55#
+               --  Frame received OK, pass up data to handler
+               --  Valid_Frame_Received (Context);
+               null; -- TODO remove this line
+            else
+               --  Discard frame
+               null;
+            end if;
+            --  Look for next frame
+            Context.Rx_Frame_State := SEARCHING_FOR_SOF;
          when others =>
-            null;
+            --  Should never get here but in case
+            --  we do then reset to a safe state
+            Context.Rx_Frame_State := SEARCHING_FOR_SOF;
       end case;
 
    end Rx_Bytes;
