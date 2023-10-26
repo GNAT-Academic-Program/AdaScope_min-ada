@@ -1,4 +1,4 @@
-with Interfaces;
+with Interfaces; use Interfaces;
 
 package body Min_Ada is
 
@@ -38,6 +38,8 @@ package body Min_Ada is
       Context   : in out Min_Context;
       Data      : Byte
    ) is
+      CRC               : Interfaces.Unsigned_32;
+      Frame_Checksum    : Interfaces.Unsigned_32;
    begin
       if Context.Rx_Header_Bytes_Seen = 2 then
          Context.Rx_Header_Bytes_Seen := 0;
@@ -65,6 +67,7 @@ package body Min_Ada is
       case Context.Rx_Frame_State is
          when SEARCHING_FOR_SOF =>
             null;
+
          when RECEIVING_ID_CONTROL =>
             Context.Rx_Frame_ID_Control     := Data;
             Context.Rx_Frame_Payload_Bytes  := Data;
@@ -77,6 +80,7 @@ package body Min_Ada is
                Context.Rx_Frame_Seq     := 0;
                Context.Rx_Frame_State   := RECEIVING_LENGTH;
             end if;
+
          when RECEIVING_SEQ =>
             Context.Rx_Frame_Seq := Data;
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
@@ -88,7 +92,7 @@ package body Min_Ada is
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
 
             if Context.Rx_Frame_Length > 0 then
-               if Context.Rx_Frame_Length <= 1 then -- TODO MAX_PAYLOAD
+               if Context.Rx_Frame_Length <= MAX_PAYLOAD then
                   Context.Rx_Frame_State := RECEIVING_PAYLOAD;
                else
                   --  Frame dropped because it's longer
@@ -100,13 +104,48 @@ package body Min_Ada is
             end if;
 
          when RECEIVING_PAYLOAD =>
-            --  Context.Rx_Frame_Payload_Buffer
-               --  (Integer'Val (Context.Rx_Frame_Payload_Bytes)) := Data;
+            Context.Rx_Frame_Payload_Buffer
+               (Context.Rx_Frame_Payload_Bytes) := Data;
             Context.Rx_Frame_Payload_Bytes :=
                Context.Rx_Frame_Payload_Bytes + 1;
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
+            Context.Rx_Frame_Length :=
+               Context.Rx_Frame_Length - 1;
             if Context.Rx_Frame_Length = 0 then
                Context.Rx_Frame_State := RECEIVING_CHECKSUM_3;
+            end if;
+
+         when RECEIVING_CHECKSUM_3 =>
+            Context.Rx_Frame_Checksum.CRC_3 := Data;
+            Context.Rx_Frame_State          := RECEIVING_CHECKSUM_2;
+
+         when RECEIVING_CHECKSUM_2 =>
+            Context.Rx_Frame_Checksum.CRC_2 := Data;
+            Context.Rx_Frame_State          := RECEIVING_CHECKSUM_1;
+
+         when RECEIVING_CHECKSUM_1 =>
+            Context.Rx_Frame_Checksum.CRC_1 := Data;
+            Context.Rx_Frame_State          := RECEIVING_CHECKSUM_0;
+
+         when RECEIVING_CHECKSUM_0 =>
+            Context.Rx_Frame_Checksum.CRC_0 := Data;
+
+            Frame_Checksum :=
+               Interfaces.Unsigned_32
+                  (Context.Rx_Frame_Checksum.CRC_0) * 256 ** 0 +
+               Interfaces.Unsigned_32
+                  (Context.Rx_Frame_Checksum.CRC_1) * 256 ** 1 +
+               Interfaces.Unsigned_32
+                  (Context.Rx_Frame_Checksum.CRC_2) * 256 ** 2 +
+               Interfaces.Unsigned_32
+                  (Context.Rx_Frame_Checksum.CRC_3) * 256 ** 3;
+
+            CRC := System.CRC32.Get_Value (Context.Rx_Checksum);
+            if Frame_Checksum /= CRC then
+               --  Frame fails the checksum and is dropped
+               Context.Rx_Frame_State := SEARCHING_FOR_SOF;
+            else
+               Context.Rx_Frame_State := RECEIVING_EOF;
             end if;
 
          when RECEIVING_EOF =>
