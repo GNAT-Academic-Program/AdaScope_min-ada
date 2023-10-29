@@ -1,4 +1,5 @@
 with Interfaces; use Interfaces;
+with Ada.Text_IO;
 
 package body Min_Ada is
 
@@ -11,7 +12,8 @@ package body Min_Ada is
       Checksum : Interfaces.Unsigned_32;
       Header : Frame_Header :=
          (HEADER_BYTE, HEADER_BYTE, HEADER_BYTE, ID, 0, 0);
-      Checksum_Bytes : CRC_Bytes;
+      Checksum_Bytes : CRC_Bytes_Arr with Address => Checksum'Address;
+      ID_Control : Byte with Address => Header.ID'Address;
    begin
       Context.Tx_Header_Byte_Countdown := 2;
       System.CRC32.Initialize (Context.Tx_Checksum);
@@ -19,15 +21,23 @@ package body Min_Ada is
       Tx_Byte (Header.Header_0);
       Tx_Byte (Header.Header_1);
       Tx_Byte (Header.Header_2);
+
       --  Send App ID, reserved bit, transport bit (together as one byte)
+      Stuffed_Tx_Byte(Context, ID_Control, True);
 
       Stuffed_Tx_Byte (Context, Payload_Length, True);
 
-      for P in Payload'Range loop
-         Stuffed_Tx_Byte (Context, Payload (P), True);
+      for P in 0 .. Payload_Length-1 loop
+         Stuffed_Tx_Byte(Context, Payload(P), True);
       end loop;
 
       Checksum := System.CRC32.Get_Value (Context.Tx_Checksum);
+
+      Checksum := System.CRC32.Get_Value(Context.Tx_Checksum);
+      Stuffed_Tx_Byte(Context, Checksum_Bytes(4), False);
+      Stuffed_Tx_Byte(Context, Checksum_Bytes(3), False);
+      Stuffed_Tx_Byte(Context, Checksum_Bytes(2), False);
+      Stuffed_Tx_Byte(Context, Checksum_Bytes(1), False);
 
       --  Send CRC
 
@@ -171,7 +181,7 @@ package body Min_Ada is
       Data : Byte
    ) is
    begin
-      null;
+      Ada.Text_IO.Put_Line(Data'Image);
    end Tx_Byte;
 
    procedure Stuffed_Tx_Byte (
@@ -198,4 +208,12 @@ package body Min_Ada is
       end if;
 
    end Stuffed_Tx_Byte;
+
+   procedure Min_Init_Context (
+      Context : in out Min_Context
+   ) is
+   begin
+      Context.Rx_Header_Bytes_Seen := 0;
+      Context.Rx_Frame_State := SEARCHING_FOR_SOF;
+   end Min_Init_Context;
 end Min_Ada;

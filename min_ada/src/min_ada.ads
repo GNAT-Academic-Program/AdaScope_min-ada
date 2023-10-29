@@ -48,7 +48,7 @@ package Min_Ada is
    end record with Size => 32;
    pragma Pack (CRC_Bytes);
 
-   --  type CRC_Bytes is array (1 .. 4) of Byte;
+   type CRC_Bytes_Arr is array (1 .. 4) of Byte;
 
    type Min_Context is record
       Rx_Frame_Payload_Buffer   : Min_Payload;
@@ -111,6 +111,10 @@ package Min_Ada is
       Context   : in out Min_Context;
       Data      : Byte;
       CRC       : Boolean
+   );
+
+   procedure Min_Init_Context (
+      Context : in out Min_Context
    );
 
 end Min_Ada;
