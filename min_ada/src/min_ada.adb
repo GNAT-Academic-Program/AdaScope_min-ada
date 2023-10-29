@@ -9,11 +9,11 @@ package body Min_Ada is
       Payload           : Min_Payload;
       Payload_Length    : Byte
    ) is
-      Checksum : Interfaces.Unsigned_32;
-      Header : Frame_Header :=
+      Checksum          : Interfaces.Unsigned_32;
+      Checksum_Bytes    : CRC_Bytes_Arr with Address => Checksum'Address;
+      ID_Control        : Byte with Address => Header.ID'Address;
+      Header            : Frame_Header :=
          (HEADER_BYTE, HEADER_BYTE, HEADER_BYTE, ID, 0, 0);
-      Checksum_Bytes : CRC_Bytes_Arr with Address => Checksum'Address;
-      ID_Control : Byte with Address => Header.ID'Address;
    begin
       Context.Tx_Header_Byte_Countdown := 2;
       System.CRC32.Initialize (Context.Tx_Checksum);
@@ -23,21 +23,26 @@ package body Min_Ada is
       Tx_Byte (Header.Header_2);
 
       --  Send App ID, reserved bit, transport bit (together as one byte)
-      Stuffed_Tx_Byte(Context, ID_Control, True);
+      Stuffed_Tx_Byte (Context, ID_Control, True);
 
       Stuffed_Tx_Byte (Context, Payload_Length, True);
 
-      for P in 0 .. Payload_Length-1 loop
-         Stuffed_Tx_Byte(Context, Payload(P), True);
+      --  TODO We could also do that
+      --  for P in Payload'Range loop
+         --  Stuffed_Tx_Byte (Context, P, True);
+      --  end loop;
+
+      for P in 0 .. Payload_Length - 1 loop
+         Stuffed_Tx_Byte (Context, Payload (P), True);
       end loop;
 
       Checksum := System.CRC32.Get_Value (Context.Tx_Checksum);
 
-      Checksum := System.CRC32.Get_Value(Context.Tx_Checksum);
-      Stuffed_Tx_Byte(Context, Checksum_Bytes(4), False);
-      Stuffed_Tx_Byte(Context, Checksum_Bytes(3), False);
-      Stuffed_Tx_Byte(Context, Checksum_Bytes(2), False);
-      Stuffed_Tx_Byte(Context, Checksum_Bytes(1), False);
+      Checksum := System.CRC32.Get_Value (Context.Tx_Checksum);
+      Stuffed_Tx_Byte (Context, Checksum_Bytes (4), False);
+      Stuffed_Tx_Byte (Context, Checksum_Bytes (3), False);
+      Stuffed_Tx_Byte (Context, Checksum_Bytes (2), False);
+      Stuffed_Tx_Byte (Context, Checksum_Bytes (1), False);
 
       --  Send CRC
 
@@ -48,7 +53,7 @@ package body Min_Ada is
       Context   : in out Min_Context;
       Data      : Byte
    ) is
-      CRC               : Interfaces.Unsigned_32;
+      Real_Checksum          : Interfaces.Unsigned_32;
       Frame_Checksum    : Interfaces.Unsigned_32;
    begin
       if Context.Rx_Header_Bytes_Seen = 2 then
@@ -84,7 +89,7 @@ package body Min_Ada is
             System.CRC32.Initialize (Context.Rx_Checksum);
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
 
-            if Data = Data then -- TODO and 16#80# then
+            if Data mod 16#80# /= 0 then
                Context.Rx_Frame_State := SEARCHING_FOR_SOF;
             else
                Context.Rx_Frame_Seq     := 0;
@@ -150,8 +155,8 @@ package body Min_Ada is
                Interfaces.Unsigned_32
                   (Context.Rx_Frame_Checksum.CRC_3) * 256 ** 3;
 
-            CRC := System.CRC32.Get_Value (Context.Rx_Checksum);
-            if Frame_Checksum /= CRC then
+            Real_Checksum := System.CRC32.Get_Value (Context.Rx_Checksum);
+            if Frame_Checksum /= Real_Checksum then
                --  Frame fails the checksum and is dropped
                Context.Rx_Frame_State := SEARCHING_FOR_SOF;
             else
@@ -159,9 +164,9 @@ package body Min_Ada is
             end if;
 
          when RECEIVING_EOF =>
-            if Data = Data then -- TODO 16#55#
+            if Data mod 16#55# /= 0 then
                --  Frame received OK, pass up data to handler
-               --  Valid_Frame_Received (Context);
+               Valid_Frame_Received (Context);
                null; -- TODO remove this line
             else
                --  Discard frame
@@ -177,11 +182,18 @@ package body Min_Ada is
 
    end Rx_Bytes;
 
+   procedure Valid_Frame_Received (
+      Context   : in out Min_Context
+   ) is
+   begin
+      Ada.Text_IO.Put_Line (Context.Rx_Frame_Payload_Bytes'Image);
+   end Valid_Frame_Received;
+
    procedure Tx_Byte (
       Data : Byte
    ) is
    begin
-      Ada.Text_IO.Put_Line(Data'Image);
+      Ada.Text_IO.Put_Line (Data'Image);
    end Tx_Byte;
 
    procedure Stuffed_Tx_Byte (

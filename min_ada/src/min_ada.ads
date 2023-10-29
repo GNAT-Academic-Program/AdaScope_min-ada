@@ -1,5 +1,4 @@
 with System.CRC32;
-with Interfaces;
 
 package Min_Ada is
 
@@ -115,6 +114,10 @@ package Min_Ada is
 
    procedure Min_Init_Context (
       Context : in out Min_Context
+   );
+
+   procedure Valid_Frame_Received (
+      Context   : in out Min_Context
    );
 
 end Min_Ada;
