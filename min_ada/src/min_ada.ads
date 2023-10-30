@@ -18,36 +18,28 @@ package Min_Ada is
    RECEIVING_SEQ        : constant UInt4 := 2;
    RECEIVING_LENGTH     : constant UInt4 := 3;
    RECEIVING_PAYLOAD    : constant UInt4 := 4;
-   RECEIVING_CHECKSUM_3 : constant UInt4 := 5;
-   RECEIVING_CHECKSUM_2 : constant UInt4 := 6;
-   RECEIVING_CHECKSUM_1 : constant UInt4 := 7;
-   RECEIVING_CHECKSUM_0 : constant UInt4 := 8;
+   RECEIVING_CHECKSUM_4 : constant UInt4 := 5;
+   RECEIVING_CHECKSUM_3 : constant UInt4 := 6;
+   RECEIVING_CHECKSUM_2 : constant UInt4 := 7;
+   RECEIVING_CHECKSUM_1 : constant UInt4 := 8;
    RECEIVING_EOF        : constant UInt4 := 9;
 
    type App_ID is mod 2**6
       with Size => 6;
 
    type Frame_Header is record
-      Header_0      : Byte;
       Header_1      : Byte;
       Header_2      : Byte;
+      Header_3      : Byte;
       ID            : App_ID;
       Reserved      : Bit;
       Transport     : Bit;
    end record with Size => 32;
    pragma Pack (Frame_Header);
 
-   type Min_Payload is array (0 .. MAX_PAYLOAD) of Byte;
+   type Min_Payload is array (1 .. MAX_PAYLOAD) of Byte;
 
-   type CRC_Bytes is record
-      CRC_0 : Byte;
-      CRC_1 : Byte;
-      CRC_2 : Byte;
-      CRC_3 : Byte;
-   end record with Size => 32;
-   pragma Pack (CRC_Bytes);
-
-   type CRC_Bytes_Arr is array (1 .. 4) of Byte;
+   type CRC_Bytes is array (1 .. 4) of Byte;
 
    type Min_Context is record
       Rx_Frame_Payload_Buffer   : Min_Payload;
@@ -117,7 +109,7 @@ package Min_Ada is
    );
 
    procedure Valid_Frame_Received (
-      Context   : in out Min_Context
+      Context   : Min_Context
    );
 
 end Min_Ada;

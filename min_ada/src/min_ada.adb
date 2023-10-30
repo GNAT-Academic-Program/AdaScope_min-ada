@@ -10,7 +10,7 @@ package body Min_Ada is
       Payload_Length    : Byte
    ) is
       Checksum          : Interfaces.Unsigned_32;
-      Checksum_Bytes    : CRC_Bytes_Arr with Address => Checksum'Address;
+      Checksum_Bytes    : CRC_Bytes with Address => Checksum'Address;
       ID_Control        : Byte with Address => Header.ID'Address;
       Header            : Frame_Header :=
          (HEADER_BYTE, HEADER_BYTE, HEADER_BYTE, ID, 0, 0);
@@ -18,9 +18,9 @@ package body Min_Ada is
       Context.Tx_Header_Byte_Countdown := 2;
       System.CRC32.Initialize (Context.Tx_Checksum);
 
-      Tx_Byte (Header.Header_0);
       Tx_Byte (Header.Header_1);
       Tx_Byte (Header.Header_2);
+      Tx_Byte (Header.Header_3);
 
       --  Send App ID, reserved bit, transport bit (together as one byte)
       Stuffed_Tx_Byte (Context, ID_Control, True);
@@ -32,13 +32,12 @@ package body Min_Ada is
          --  Stuffed_Tx_Byte (Context, P, True);
       --  end loop;
 
-      for P in 0 .. Payload_Length - 1 loop
+      for P in 1 .. Payload_Length loop
          Stuffed_Tx_Byte (Context, Payload (P), True);
       end loop;
 
       Checksum := System.CRC32.Get_Value (Context.Tx_Checksum);
 
-      Checksum := System.CRC32.Get_Value (Context.Tx_Checksum);
       Stuffed_Tx_Byte (Context, Checksum_Bytes (4), False);
       Stuffed_Tx_Byte (Context, Checksum_Bytes (3), False);
       Stuffed_Tx_Byte (Context, Checksum_Bytes (2), False);
@@ -53,8 +52,9 @@ package body Min_Ada is
       Context   : in out Min_Context;
       Data      : Byte
    ) is
-      Real_Checksum          : Interfaces.Unsigned_32;
-      Frame_Checksum    : Interfaces.Unsigned_32;
+      Real_Checksum     : Interfaces.Unsigned_32;
+      Frame_Checksum    : Interfaces.Unsigned_32 with Address =>
+         Context.Rx_Frame_Checksum'Address;
    begin
       if Context.Rx_Header_Bytes_Seen = 2 then
          Context.Rx_Header_Bytes_Seen := 0;
@@ -89,7 +89,7 @@ package body Min_Ada is
             System.CRC32.Initialize (Context.Rx_Checksum);
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
 
-            if Data mod 16#80# /= 0 then
+            if Data mod 16#80# /= 0 then -- TODO Check if mod is ok
                Context.Rx_Frame_State := SEARCHING_FOR_SOF;
             else
                Context.Rx_Frame_Seq     := 0;
@@ -115,7 +115,7 @@ package body Min_Ada is
                   Context.Rx_Frame_State := SEARCHING_FOR_SOF;
                end if;
             else
-               Context.Rx_Frame_State := RECEIVING_CHECKSUM_3;
+               Context.Rx_Frame_State := RECEIVING_CHECKSUM_4;
             end if;
 
          when RECEIVING_PAYLOAD =>
@@ -127,36 +127,29 @@ package body Min_Ada is
             Context.Rx_Frame_Length :=
                Context.Rx_Frame_Length - 1;
             if Context.Rx_Frame_Length = 0 then
-               Context.Rx_Frame_State := RECEIVING_CHECKSUM_3;
+               Context.Rx_Frame_State := RECEIVING_CHECKSUM_4;
             end if;
 
+         when RECEIVING_CHECKSUM_4 =>
+            Context.Rx_Frame_Checksum (4)   := Data;
+            Context.Rx_Frame_State          := RECEIVING_CHECKSUM_3;
+
          when RECEIVING_CHECKSUM_3 =>
-            Context.Rx_Frame_Checksum.CRC_3 := Data;
+            Context.Rx_Frame_Checksum (3)   := Data;
             Context.Rx_Frame_State          := RECEIVING_CHECKSUM_2;
 
          when RECEIVING_CHECKSUM_2 =>
-            Context.Rx_Frame_Checksum.CRC_2 := Data;
+            Context.Rx_Frame_Checksum (2)   := Data;
             Context.Rx_Frame_State          := RECEIVING_CHECKSUM_1;
 
          when RECEIVING_CHECKSUM_1 =>
-            Context.Rx_Frame_Checksum.CRC_1 := Data;
-            Context.Rx_Frame_State          := RECEIVING_CHECKSUM_0;
+            Context.Rx_Frame_Checksum (1)   := Data;
 
-         when RECEIVING_CHECKSUM_0 =>
-            Context.Rx_Frame_Checksum.CRC_0 := Data;
-
-            Frame_Checksum :=
-               Interfaces.Unsigned_32
-                  (Context.Rx_Frame_Checksum.CRC_0) * 256 ** 0 +
-               Interfaces.Unsigned_32
-                  (Context.Rx_Frame_Checksum.CRC_1) * 256 ** 1 +
-               Interfaces.Unsigned_32
-                  (Context.Rx_Frame_Checksum.CRC_2) * 256 ** 2 +
-               Interfaces.Unsigned_32
-                  (Context.Rx_Frame_Checksum.CRC_3) * 256 ** 3;
+            --  TODO Frame_Checksum := Context.Rx_Frame_Checksum;
 
             Real_Checksum := System.CRC32.Get_Value (Context.Rx_Checksum);
-            if Frame_Checksum /= Real_Checksum then
+            --  TODO if Frame_Checksum /= Real_Checksum then
+            if Frame_Checksum /= Frame_Checksum then
                --  Frame fails the checksum and is dropped
                Context.Rx_Frame_State := SEARCHING_FOR_SOF;
             else
@@ -164,7 +157,7 @@ package body Min_Ada is
             end if;
 
          when RECEIVING_EOF =>
-            if Data mod 16#55# /= 0 then
+            if Data mod 16#55# /= 0 then -- TODO Check if mod is ok
                --  Frame received OK, pass up data to handler
                Valid_Frame_Received (Context);
                null; -- TODO remove this line
@@ -183,7 +176,7 @@ package body Min_Ada is
    end Rx_Bytes;
 
    procedure Valid_Frame_Received (
-      Context   : in out Min_Context
+      Context   : Min_Context
    ) is
    begin
       Ada.Text_IO.Put_Line (Context.Rx_Frame_Payload_Bytes'Image);
