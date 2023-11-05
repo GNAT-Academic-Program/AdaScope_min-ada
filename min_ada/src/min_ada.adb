@@ -148,8 +148,8 @@ package body Min_Ada is
             --  TODO Frame_Checksum := Context.Rx_Frame_Checksum;
 
             Real_Checksum := System.CRC32.Get_Value (Context.Rx_Checksum);
-            --  TODO if Frame_Checksum /= Real_Checksum then
-            if Frame_Checksum /= Frame_Checksum then
+            if Frame_Checksum /= Real_Checksum then
+            --  if Frame_Checksum /= Frame_Checksum then
                --  Frame fails the checksum and is dropped
                Context.Rx_Frame_State := SEARCHING_FOR_SOF;
             else
