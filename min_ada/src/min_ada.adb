@@ -81,15 +81,17 @@ package body Min_Ada is
 
       case Context.Rx_Frame_State is
          when SEARCHING_FOR_SOF =>
+            Ada.Text_IO.Put_Line("SEARCHING_FOR_SOF");
             null;
 
          when RECEIVING_ID_CONTROL =>
+            Ada.Text_IO.Put_Line("RECEIVING_ID_CONTROL");
             Context.Rx_Frame_ID_Control     := Data;
-            Context.Rx_Frame_Payload_Bytes  := Data;
+            Context.Rx_Frame_Payload_Bytes  := 0;
             System.CRC32.Initialize (Context.Rx_Checksum);
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
 
-            if Data mod 16#80# /= 0 then -- TODO Check if mod is ok
+            if False then -- TODO Check if mod is ok
                Context.Rx_Frame_State := SEARCHING_FOR_SOF;
             else
                Context.Rx_Frame_Seq     := 0;
@@ -97,11 +99,13 @@ package body Min_Ada is
             end if;
 
          when RECEIVING_SEQ =>
+            Ada.Text_IO.Put_Line("RECEIVING_SEQ");
             Context.Rx_Frame_Seq := Data;
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
             Context.Rx_Frame_State := RECEIVING_LENGTH;
 
          when RECEIVING_LENGTH =>
+            Ada.Text_IO.Put_Line("RECEIVING_LENGTH");
             Context.Rx_Frame_Length := Data;
             Context.Rx_Control      := Data;
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
@@ -119,8 +123,9 @@ package body Min_Ada is
             end if;
 
          when RECEIVING_PAYLOAD =>
+            Ada.Text_IO.Put_Line("RECEIVING_PAYLOAD");
             Context.Rx_Frame_Payload_Buffer
-               (Context.Rx_Frame_Payload_Bytes) := Data;
+               (Context.Rx_Frame_Payload_Bytes + 1) := Data;
             Context.Rx_Frame_Payload_Bytes :=
                Context.Rx_Frame_Payload_Bytes + 1;
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
@@ -131,6 +136,7 @@ package body Min_Ada is
             end if;
 
          when RECEIVING_CHECKSUM_4 =>
+            Ada.Text_IO.Put_Line("RECEIVING_CHECKSUM_4");
             Context.Rx_Frame_Checksum (4)   := Data;
             Context.Rx_Frame_State          := RECEIVING_CHECKSUM_3;
 
@@ -143,11 +149,14 @@ package body Min_Ada is
             Context.Rx_Frame_State          := RECEIVING_CHECKSUM_1;
 
          when RECEIVING_CHECKSUM_1 =>
+            Ada.Text_IO.Put_Line("RECEIVING_CHECKSUM_1 ");
             Context.Rx_Frame_Checksum (1)   := Data;
 
             --  TODO Frame_Checksum := Context.Rx_Frame_Checksum;
 
             Real_Checksum := System.CRC32.Get_Value (Context.Rx_Checksum);
+            Ada.Text_IO.Put_Line(Frame_Checksum'Image);
+            Ada.Text_IO.Put_Line(Real_Checksum'Image);
             if Frame_Checksum /= Real_Checksum then
             --  if Frame_Checksum /= Frame_Checksum then
                --  Frame fails the checksum and is dropped
@@ -157,7 +166,8 @@ package body Min_Ada is
             end if;
 
          when RECEIVING_EOF =>
-            if Data mod 16#55# /= 0 then -- TODO Check if mod is ok
+            Ada.Text_IO.Put_Line("RECEIVING_EOF");
+            if Data = EOF_BYTE then -- TODO Check if mod is ok
                --  Frame received OK, pass up data to handler
                Valid_Frame_Received (Context);
                null; -- TODO remove this line
@@ -175,11 +185,15 @@ package body Min_Ada is
 
    end Rx_Bytes;
 
-   procedure Valid_Frame_Received (
-      Context   : Min_Context
+   procedure Valid_Frame_Received(
+      Context: Min_Context
    ) is
    begin
-      Ada.Text_IO.Put_Line (Context.Rx_Frame_Payload_Bytes'Image);
+      Ada.Text_IO.Put_Line(Context.Rx_Frame_ID_Control'Image);
+      Ada.Text_IO.Put_Line(Context.Rx_Frame_Payload_Bytes'Image);
+      for P in 1 .. Context.Rx_Frame_Payload_Bytes loop
+         Ada.Text_IO.Put_Line(Context.Rx_Frame_Payload_Buffer(P)'Image);
+      end loop;
    end Valid_Frame_Received;
 
    procedure Tx_Byte (
