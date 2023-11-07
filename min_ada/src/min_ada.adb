@@ -84,7 +84,7 @@ package body Min_Ada is
             System.CRC32.Initialize (Context.Rx_Checksum);
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
 
-            if False then -- TODO if Data and 16#80#
+            if MSB_Is_One (Data) then -- TODO if Data and 16#80#
                Context.Rx_Frame_State := SEARCHING_FOR_SOF;
             else
                Context.Rx_Frame_Seq     := 0;
@@ -221,4 +221,21 @@ package body Min_Ada is
       Context.Rx_Header_Bytes_Seen := 0;
       Context.Rx_Frame_State := SEARCHING_FOR_SOF;
    end Min_Init_Context;
+
+   function MSB_Is_One (
+      Data : Byte
+   ) return Boolean is
+      MSB : Interfaces.Unsigned_8;
+   begin
+      MSB := Interfaces.Shift_Right (
+         Value  => Interfaces.Unsigned_8 (Data),
+         Amount => 7
+      );
+      if MSB = 1 then
+         return True;
+      else
+         return False;
+      end if;
+   end MSB_Is_One;
+
 end Min_Ada;

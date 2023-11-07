@@ -112,4 +112,9 @@ package Min_Ada is
       Context   : Min_Context
    );
 
+   function MSB_Is_One (
+      Data : Byte
+   ) return Boolean;
+   
+
 end Min_Ada;
