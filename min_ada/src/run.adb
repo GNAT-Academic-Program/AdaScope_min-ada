@@ -1,21 +1,26 @@
-with Min_Ada;
+with Min_Ada; use Min_Ada;
 with GNAT.Serial_Communications;
 with Ada.Streams;
+with Ada.Text_IO; use Ada.Text_IO;
+with Min_Implementation;
 
 procedure Run is
-   Context : Min_Ada.Min_Context;
+   Context : Min_Context;
 
    --  For sending frame
-   Payload : Min_Ada.Min_Payload;
+   Payload : Min_Payload;
 
    --  For serial port
-   Port : GNAT.Serial_Communications.Serial_Port;
-   Buffer : Ada.Streams.Stream_Element_Array (1 .. 1);
-   Offset : Ada.Streams.Stream_Element_Offset := 1;
+   --Port : GNAT.Serial_Communications.Serial_Port;
+   --Buffer : Ada.Streams.Stream_Element_Array (1 .. 1);
+   --Offset : Ada.Streams.Stream_Element_Offset := 1;
+   
 begin
 
    --  Init the context
    Min_Ada.Min_Init_Context (Context);
+
+   Context.Tx_Byte := Min_Implementation.Tx_Byte_Impl'Access;
 
    --  Create the payload
    Payload (1) := 2;
@@ -23,14 +28,14 @@ begin
 
    --  Open the serial port (virtual serial port)
    --  Run socat -d -d pty,raw,echo=0 pty,raw,echo=0
-   GNAT.Serial_Communications.Open (
-      Port => Port,
-      Name => "/dev/pts/2"
-   );
-   GNAT.Serial_Communications.Set (
-      Port => Port,
-      Rate => GNAT.Serial_Communications.B115200
-   );
+   --GNAT.Serial_Communications.Open (
+   --   Port => Port,
+   --   Name => "/dev/pts/2"
+   --);
+   --GNAT.Serial_Communications.Set (
+   --   Port => Port,
+   --   Rate => GNAT.Serial_Communications.B115200
+   --);
 
    --  Send this short payload
    Min_Ada.Send_Frame (
@@ -41,8 +46,8 @@ begin
    );
 
    --  Just receive whatever is on the serial port
-   while True loop
-      GNAT.Serial_Communications.Read (Port, Buffer, Offset);
-      Min_Ada.Rx_Bytes (Context, Min_Ada.Byte'Val (Buffer (1)));
-   end loop;
+   --while True loop
+   --   GNAT.Serial_Communications.Read (Port, Buffer, Offset);
+   --   Min_Ada.Rx_Bytes (Context, Min_Ada.Byte'Val (Buffer (1)));
+   --end loop;
 end Run;

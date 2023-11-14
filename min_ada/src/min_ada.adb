@@ -3,6 +3,8 @@ with Interfaces; use Interfaces;
 
 package body Min_Ada is
 
+   now : UInt32;
+
    procedure Send_Frame (
       Context           : in out Min_Context;
       ID                : App_ID;
@@ -18,9 +20,9 @@ package body Min_Ada is
       Context.Tx_Header_Byte_Countdown := 2;
       System.CRC32.Initialize (Context.Tx_Checksum);
 
-      Tx_Byte (Header.Header_1);
-      Tx_Byte (Header.Header_2);
-      Tx_Byte (Header.Header_3);
+      Context.Tx_Byte (Header.Header_1);
+      Context.Tx_Byte (Header.Header_2);
+      Context.Tx_Byte (Header.Header_3);
 
       --  Send App ID, reserved bit, transport bit (together as one byte)
       Stuffed_Tx_Byte (Context, ID_Control, True);
@@ -40,7 +42,7 @@ package body Min_Ada is
 
       --  Send CRC
 
-      Tx_Byte (EOF_BYTE);
+      Context.Tx_Byte (EOF_BYTE);
    end Send_Frame;
 
    procedure Rx_Bytes (
@@ -182,20 +184,13 @@ package body Min_Ada is
       end loop;
    end Valid_Frame_Received;
 
-   procedure Tx_Byte (
-      Data : Byte
-   ) is
-   begin
-      Put_Line (Data'Image);
-   end Tx_Byte;
-
    procedure Stuffed_Tx_Byte (
       Context   : in out Min_Context;
       Data      : Byte;
       CRC       : Boolean
    ) is
    begin
-      Tx_Byte (Data);
+      Context.Tx_Byte (Data);
       if CRC then
          System.CRC32.Update (Context.Tx_Checksum, Character'Val (Data));
       end if;
@@ -205,7 +200,7 @@ package body Min_Ada is
             Context.Tx_Header_Byte_Countdown - 1;
 
          if Context.Tx_Header_Byte_Countdown = 0 then
-            Tx_Byte (STUFF_BYTE);
+            Context.Tx_Byte (STUFF_BYTE);
             Context.Tx_Header_Byte_Countdown := 2;
          end if;
       else
@@ -220,6 +215,16 @@ package body Min_Ada is
    begin
       Context.Rx_Header_Bytes_Seen := 0;
       Context.Rx_Frame_State := SEARCHING_FOR_SOF;
+
+      --IF TRANSPORT
+      Context.Transport_Fifo.Spurious_Acks := 0;
+      Context.Transport_Fifo.Sequence_Mismatch_Drop := 0;
+      Context.Transport_Fifo.Dropped_Frames := 0;
+      Context.Transport_Fifo.Resets_Received := 0;
+      Context.Transport_Fifo.N_Ring_Buffer_Bytes_Max := 0;
+      Context.Transport_Fifo.N_Frames_Max := 0;
+   
+
    end Min_Init_Context;
 
    function MSB_Is_One (
@@ -237,5 +242,42 @@ package body Min_Ada is
          return False;
       end if;
    end MSB_Is_One;
+
+   function Min_Time_MS return UInt32 is
+   begin
+      --TODO
+      return 2;
+   end Min_Time_MS;
+
+
+   --TODO
+   --Need to not rx_bytes if min_poll called without data. Done automatically in c implementation if buffer size is 0;
+   procedure Min_Poll (
+      Context : in out Min_Context;
+      Data    : Byte
+   ) is
+      --IF TRANSPORT
+      Window_Size : Byte;
+      Remote_Connected : Boolean;
+      Remote_Active : Boolean;
+      Frame_Index : Byte;
+   begin
+      Rx_Bytes(Context, Data);
+
+      --IF TRANSPORT
+      now := Min_Time_MS;
+      Remote_Connected := ((now - Context.Transport_Fifo.Last_Received_Anything_MS < TRANSPORT_IDLE_TIMEOUT_MS));
+      Remote_Active := ((now - Context.Transport_Fifo.Last_Received_Frame_MS < TRANSPORT_IDLE_TIMEOUT_MS));
+
+      Window_Size := Context.Transport_Fifo.Sn_Max - Context.Transport_Fifo.Sn_Min;
+      if (Window_Size < TRANSPORT_MAX_WINDOW_SIZE) and (Context.Transport_Fifo.N_Frames > Window_Size) then
+         Frame_Index := (Context.Transport_Fifo.Head_Idx + Window_Size) and TRANSPORT_FIFO_SIZE_FRAMES_MASK;
+         --TODO - ON_WIRE_SIZE
+         Context.Transport_Fifo.Frames(Frame_Index).seq := Context.Transport_Fifo.Sn_Max;
+
+      end if;
+
+
+   end Min_Poll;
 
 end Min_Ada;
