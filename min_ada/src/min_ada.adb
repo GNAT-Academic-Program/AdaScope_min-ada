@@ -38,8 +38,6 @@ package body Min_Ada is
       Stuffed_Tx_Byte (Context, Checksum_Bytes (2), False);
       Stuffed_Tx_Byte (Context, Checksum_Bytes (1), False);
 
-      --  Send CRC
-
       Tx_Byte (EOF_BYTE);
    end Send_Frame;
 
@@ -84,7 +82,7 @@ package body Min_Ada is
             System.CRC32.Initialize (Context.Rx_Checksum);
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
 
-            if MSB_Is_One (Data) then -- TODO if Data and 16#80#
+            if MSB_Is_One (Data) then
                Context.Rx_Frame_State := SEARCHING_FOR_SOF;
             else
                Context.Rx_Frame_Seq     := 0;
@@ -102,13 +100,7 @@ package body Min_Ada is
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
 
             if Context.Rx_Frame_Length > 0 then
-               if Context.Rx_Frame_Length <= MAX_PAYLOAD then
-                  Context.Rx_Frame_State := RECEIVING_PAYLOAD;
-               else
-                  --  Frame dropped because it's longer
-                  --  than any frame we can buffer
-                  Context.Rx_Frame_State := SEARCHING_FOR_SOF;
-               end if;
+               Context.Rx_Frame_State := SEARCHING_FOR_SOF;
             else
                Context.Rx_Frame_State := RECEIVING_CHECKSUM_4;
             end if;
@@ -142,7 +134,6 @@ package body Min_Ada is
 
             Real_Checksum := System.CRC32.Get_Value (Context.Rx_Checksum);
             if Frame_Checksum /= Real_Checksum then
-            --  if Frame_Checksum /= Frame_Checksum then
                --  Frame fails the checksum and is dropped
                Context.Rx_Frame_State := SEARCHING_FOR_SOF;
             else
@@ -153,15 +144,8 @@ package body Min_Ada is
             if Data = EOF_BYTE then
                --  Frame received OK, pass up data to handler
                Valid_Frame_Received (Context);
-            else
-               --  Discard frame
-               null;
             end if;
             --  Look for next frame
-            Context.Rx_Frame_State := SEARCHING_FOR_SOF;
-         when others =>
-            --  Should never get here but in case
-            --  we do then reset to a safe state
             Context.Rx_Frame_State := SEARCHING_FOR_SOF;
       end case;
 
