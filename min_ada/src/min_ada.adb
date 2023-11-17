@@ -1,5 +1,6 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces; use Interfaces;
+with Globals;
 
 package body Min_Ada is
 
@@ -100,7 +101,7 @@ package body Min_Ada is
             System.CRC32.Update (Context.Rx_Checksum, Character'Val (Data));
 
             if Context.Rx_Frame_Length > 0 then
-               Context.Rx_Frame_State := SEARCHING_FOR_SOF;
+               Context.Rx_Frame_State := RECEIVING_PAYLOAD;
             else
                Context.Rx_Frame_State := RECEIVING_CHECKSUM_4;
             end if;
@@ -221,5 +222,39 @@ package body Min_Ada is
          return False;
       end if;
    end MSB_Is_One;
+
+   procedure Min_Application_Handler (
+      ID             : App_ID;
+      Payload        : Min_Payload
+   ) is
+      --  For storing one reading
+      Reading       : String (1 .. 4) := "0000";
+      Reading_Index : Natural := Reading'First;
+      Current_Digit : Character;
+   begin
+
+      for I in Payload'Range loop
+         Current_Digit := Character'Val (Payload (I));
+         --  If we read the end of the line
+         --  and we are not a the beginning of a line
+         if Current_Digit = ASCII.LF and then Reading_Index > 1 then
+            --  We save the reading to an array
+            Globals.Buffered_Data.Set_Data (
+               Channel => Integer'Value (ID'Image),
+               Data => Float'Value (Reading (1 .. Reading_Index))
+            );
+            --  We reset the line index and increment the counter
+            Reading_Index := Reading'First;
+
+         --  If we are not a the end of the line
+         elsif Current_Digit /= ASCII.LF then
+            --  We write the current character to
+            --  the current index of our line and increment the line
+            Reading (Reading_Index) := Current_Digit;
+            Reading_Index := Reading_Index + 1;
+         end if;
+      end loop;
+
+   end Min_Application_Handler;
 
 end Min_Ada;

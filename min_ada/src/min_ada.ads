@@ -118,4 +118,9 @@ package Min_Ada is
       Data : Byte
    ) return Boolean;
 
+   procedure Min_Application_Handler (
+      ID             : App_ID;
+      Payload        : Min_Payload
+   );
+
 end Min_Ada;
